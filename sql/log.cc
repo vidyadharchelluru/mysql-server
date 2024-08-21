@@ -1367,7 +1367,9 @@ static bool log_command(THD *thd, enum_server_command command) {
     Security_context *sctx = thd->security_context();
     if ((thd->variables.option_bits & OPTION_LOG_OFF) &&
         (sctx->check_access(SUPER_ACL) ||
-         sctx->has_global_grant(STRING_WITH_LEN("CONNECTION_ADMIN")).first)) {
+         sctx->has_global_grant(STRING_WITH_LEN("CONNECTION_ADMIN")).first ||
+         sctx->has_global_grant(STRING_WITH_LEN("SESSION_VARIABLES_ADMIN")).first ||
+         sctx->has_global_grant(STRING_WITH_LEN("SYSTEM_VARIABLES_ADMIN")).first)) {
       /* No logging */
       return false;
     }
