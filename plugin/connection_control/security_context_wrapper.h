@@ -40,6 +40,7 @@ class Security_context_wrapper {
   bool security_context_exists();
   bool is_super_user();
   bool is_connection_admin();
+  bool is_process_priv_user();
 
  private:
   bool get_property(const char *property, LEX_CSTRING *value);

@@ -259,6 +259,9 @@ my_svc_bool security_context_get_option(MYSQL_SECURITY_CONTEXT ctx,
       } else if (!strcmp(name, "privilege_super")) {
         const bool checked = ctx->check_access(SUPER_ACL);
         *((my_svc_bool *)inout_pvalue) = checked ? MY_SVC_TRUE : MY_SVC_FALSE;
+      } else if (!strcmp(name, "privilege_process")) {
+        const bool checked = ctx->check_access(PROCESS_ACL);
+        *((my_svc_bool *)inout_pvalue) = checked ? MY_SVC_TRUE : MY_SVC_FALSE;
       } else if (!strcmp(name, "privilege_execute")) {
         const bool checked = ctx->check_access(EXECUTE_ACL);
         *((my_svc_bool *)inout_pvalue) = checked ? MY_SVC_TRUE : MY_SVC_FALSE;

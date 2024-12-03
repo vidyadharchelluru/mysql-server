@@ -139,6 +139,18 @@ bool Security_context_wrapper::is_super_user() {
   return has_super;
 }
 
+/** Check whether user has process privilege or not */
+
+bool Security_context_wrapper::is_process_priv_user() { 
+  if (!m_valid) return false;
+
+  bool has_process = false;
+  if (security_context_get_option(m_sctx, "privilege_process", &has_process))
+    return false;
+
+  return has_process;
+}
+
 /** Check whether user has the connection admin privilege or not */
 
 bool Security_context_wrapper::is_connection_admin() {

@@ -725,7 +725,7 @@ static bool get_equal_condition_argument(Item *cond, Sql_string *eq_arg,
   Handles query with equality condition.
   For full scan, calls Connection_delay_event::fill_IS_table()
 
-  Permission : SUPER_ACL is required.
+  Permission : PROCESS_ACL is required.
 
   @param [in] thd     THD handle.
   @param [in] tables  Handle to
@@ -737,7 +737,7 @@ void Connection_delay_action::fill_IS_table(THD *thd, Table_ref *tables,
                                             Item *cond) {
   DBUG_TRACE;
   Security_context_wrapper sctx_wrapper(thd);
-  if (!(sctx_wrapper.is_super_user() || sctx_wrapper.is_connection_admin()))
+  if (!(sctx_wrapper.is_connection_admin() || sctx_wrapper.is_process_priv_user()))
     return;
   const WR_lock wr_lock(m_lock);
   Sql_string eq_arg;

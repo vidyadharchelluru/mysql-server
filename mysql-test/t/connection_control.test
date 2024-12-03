@@ -1,0 +1,101 @@
+####
+## This MTR test validate the functionality of connection control plugin
+## and validate that the PROCESS privilege or CONNECTION_ADMIN privileges
+## sufficient to verify the contents of information_schema table 
+## CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS to monitor failed connections
+####
+
+connection default;
+
+## Create different users with distinct privileges including one with
+## SUPER, one with PROCESS, one with CONNECTION_ADMIN only and
+## another user with all privileges except above three privileges
+
+--echo
+--echo ######## Create test users with/without ALL PRIVILEGS ########
+CREATE USER user1@localhost;
+CREATE USER user2@localhost;
+CREATE USER user3@localhost;
+CREATE USER user4@localhost;
+--disable_warnings
+GRANT SUPER ON *.* TO user1@localhost;
+--enable_warnings
+GRANT PROCESS ON *.* TO user2@localhost;
+GRANT CONNECTION_ADMIN ON *.* TO user3@localhost;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO user4@localhost WITH GRANT OPTION;
+GRANT ALLOW_NONEXISTENT_DEFINER,APPLICATION_PASSWORD_ADMIN,AUDIT_ABORT_EXEMPT,AUDIT_ADMIN,AUTHENTICATION_POLICY_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,ENCRYPTION_KEY_ADMIN,FIREWALL_EXEMPT,FLUSH_OPTIMIZER_COSTS,FLUSH_PRIVILEGES,FLUSH_STATUS,FLUSH_TABLES,FLUSH_USER_RESOURCES,GROUP_REPLICATION_ADMIN,GROUP_REPLICATION_STREAM,INNODB_REDO_LOG_ARCHIVE,INNODB_REDO_LOG_ENABLE,OPTIMIZE_LOCAL_TABLE,PASSWORDLESS_USER_ADMIN,PERSIST_RO_VARIABLES_ADMIN,REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,ROLE_ADMIN,SENSITIVE_VARIABLES_OBSERVER,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_ANY_DEFINER,SHOW_ROUTINE,SYSTEM_USER,SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,TELEMETRY_LOG_ADMIN,TRANSACTION_GTID_TAG,XA_RECOVER_ADMIN ON *.* TO user4@localhost WITH GRANT OPTION;
+
+## Install connection control plugin
+
+INSTALL PLUGIN CONNECTION_CONTROL SONAME 'connection_control.so';
+INSTALL PLUGIN CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS SONAME 'connection_control.so';
+
+## Configure the plugin with reduced failed attempts and increased delay
+## compared to the default values for respective parameters
+
+SET GLOBAL connection_control_failed_connections_threshold=1;
+SET GLOBAL connection_control_max_connection_delay=2000;
+
+## Make connections to database with different users created earlier
+
+--disable_result_log
+--disable_query_log
+
+connect (con1,localhost,user1,,test);
+connect (con2,localhost,user2,,test);
+connect (con3,localhost,user3,,test);
+connect (con4,localhost,user4,,test);
+
+## Create wrong connections using user that doent exist
+## This activate the connection control plugin and add delay
+## for connection attempts matching the specific user and host
+
+--error 1045
+connect (con5,localhost,user,,test);
+--error 1045
+connect (con5,localhost,user,,test);
+--error 1045
+connect (con5,localhost,user,,test);
+
+--enable_result_log
+--enable_query_log
+
+## Validating results using different users with distinct privileges
+
+connection con1;
+
+select user(),current_user();
+select * from information_schema.CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS;
+
+connection con2;
+
+select user(),current_user();
+select * from information_schema.CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS;
+
+connection con3;
+
+select user(),current_user();
+select * from information_schema.CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS;
+
+connection con4;
+
+select user(),current_user();
+select * from information_schema.CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS;
+
+## Cleanup
+
+disconnect con1;
+disconnect con2;
+disconnect con3;
+disconnect con4;
+
+connection default;
+
+DROP USER user1@localhost;
+DROP USER user2@localhost;
+DROP USER user3@localhost;
+DROP USER user4@localhost;
+
+UNINSTALL PLUGIN CONNECTION_CONTROL;
+UNINSTALL PLUGIN CONNECTION_CONTROL_FAILED_LOGIN_ATTEMPTS;
+
